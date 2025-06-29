@@ -1,20 +1,24 @@
-# Template file for 'linux6.12-mookiiii'
-pkgname=linux6.12-mookiii
-version=6.12.23
+# Template file for 'linux-lqx'
+pkgname=linux-lqx
+version=6.15.4
 revision=1
-short_desc="Linux kernel and modules (${version%.*} series) with some nice Patches "
+short_desc="Linux kernel and modules (${_branch} series with Liquorix patches)"
 maintainer="Mookiiii"
 license="GPL-2.0-only"
 homepage="https://www.kernel.org"
-distfiles="${KERNEL_SITE}/kernel/v${version%%.*}.x/linux-${version%.*}.tar.xz"
 
-if [ "${version##*.}" != 0 ]; then
-	distfiles+=" ${KERNEL_SITE}/kernel/v${version%%.*}.x/patch-${version}.xz"
-	skip_extraction="patch-${version}.xz"
-fi
+case "${version##*.}" in
+rc*) distfiles="https://git.kernel.org/torvalds/t/linux-${version%.*}-${version##*.}.tar.gz" ;;
+*)
+	distfiles="${KERNEL_SITE}/kernel/v${version%%.*}.x/linux-${version%.*}.tar.xz"
+	if [ "${version##*.}" != 0 ]; then
+		distfiles+=" ${KERNEL_SITE}/kernel/v${version%%.*}.x/patch-${version}.xz"
+		skip_extraction="patch-${version}.xz"
+	fi
+esac
 
-checksum="b1a2562be56e42afb3f8489d4c2a7ac472ac23098f1ef1c1e40da601f54625eb
- 45591e7062529d26a778324df4232b87a8f8d0242925675aabd643c3a458afcb"
+checksum="7586962547803be7ecc4056efc927fb25214548722bd28171172f3599abb9764
+ 64d5ed5bd25723410e56b5957de66aaf9864402bda408bc5d609765917e54b2d"
 python_version=3
 
 # XXX Restrict archs until a proper <arch>-dotconfig is available in FILESDIR.
@@ -55,13 +59,17 @@ if [ "$CROSS_BUILD" ]; then
 	_cross="CROSS_COMPILE=${XBPS_CROSS_TRIPLET}-"
 fi
 
-pre_patch() {
+post_extract() {
+	# doing this in post_extract instead of *_patch, so that ./xbps-src extract
+	# will have the actual kernel release source code and additional patches
+	# can be applied with ./xbps-src patch in the next step.
 	if [ ! -f $XBPS_SRCDISTDIR/$pkgname-$version/patch-${version}.xz ]; then
 		return
 	fi
 	xzcat $XBPS_SRCDISTDIR/$pkgname-$version/patch-${version}.xz |
 		patch -sNp1 -F0
 }
+	
 
 post_patch() {
 	# avoid the strip wrapper, its used to copy the objects to a new location
@@ -116,7 +124,7 @@ do_build() {
 		mips*) _args="uImage modules dtbs"; arch=mips;;
 		riscv64*) _args="Image modules dtbs"; arch=riscv;;
 	esac
-	export LDFLAGS=
+	export LDFLAGS="Wl,-O1 -Wl,--sort-common -Wl,--as-needed -Wl,-z,relro -Wl,-z,now -Wl,-z,pack-relative-relocs -fuse-ld=mold"
 	make KCFLAGS="-march=znver1 -mtune=znver1" ARCH=$arch ${_cross} ${makejobs} --jobs=6 prepare
 	make KCFLAGS="-march=znver1 -mtune=znver1" ARCH=$arch ${_cross} ${makejobs} --jobs=6 ${_args}
 }
@@ -137,7 +145,7 @@ do_install() {
 	# Run depmod after compressing modules - makes depmod.sh a noop
 	sed -i '2iexit 0' scripts/depmod.sh
 	vmkdir usr/lib
-	ln -s usr/lib/ ${DESTDIR}
+	ln -sf usr/lib/ ${DESTDIR}
 
 	# Install kernel, firmware and modules
 	make ${makejobs} ARCH=${subarch:-$arch} INSTALL_MOD_PATH=${DESTDIR} ${_cross} modules_install
@@ -201,7 +209,7 @@ do_install() {
 	rm -rf ${DESTDIR}/usr/lib/firmware
 
 	for i in acpi asm-generic clocksource config crypto drm generated linux vdso \
-		math-emu media net pcmcia scsi sound trace uapi video xen dt-bindings; do
+		math-emu media net pcmcia scsi sound trace uapi video xen dt-bindings hyperv; do
 		if [ -d include/$i ]; then
 			cp -a include/$i ${hdrdest}/include
 		fi
@@ -326,7 +334,7 @@ do_install() {
 	rm -f ${DESTDIR}/lib
 }
 
-linux6.12-mookiii-headers_package() {
+linux-lqx-headers_package() {
 	preserve=yes
 	nostrip=yes
 	noshlibprovides=yes
@@ -337,7 +345,7 @@ linux6.12-mookiii-headers_package() {
 	}
 }
 
-linux6.12-mookiii-dbg_package() {
+linux-lqx-dbg_package() {
 	preserve=yes
 	nostrip=yes
 	noverifyrdeps=yes

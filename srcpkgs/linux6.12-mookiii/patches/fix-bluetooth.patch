@@ -1,0 +1,14 @@
+diff --git a/net/bluetooth/hci_sync.c b/net/bluetooth/hci_sync.c
+index 5a6aa1627791..b27fe44ec41e 100644
+--- a/net/bluetooth/hci_sync.c
++++ b/net/bluetooth/hci_sync.c
+@@ -3882,7 +3882,7 @@ static const struct hci_init_stage hci_init2[] = {
+        /* HCI_OP_READ_INQ_RSP_TX_POWER */
+        HCI_INIT(hci_read_inq_rsp_tx_power_sync),
+        /* HCI_OP_READ_LOCAL_EXT_FEATURES */
+-       HCI_INIT(hci_read_local_ext_features_1_sync),
++       // HCI_INIT(hci_read_local_ext_features_1_sync),
+        /* HCI_OP_WRITE_AUTH_ENABLE */
+        HCI_INIT(hci_write_auth_enable_sync),
+        {}
+
